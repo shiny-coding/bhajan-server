@@ -1,0 +1,10 @@
+AWS Access Key ID: "fakeMyKeyId" 
+AWS Secret Access Key: "fakeSecretAccessKey"
+Default Region Name: "fakeRegion
+
+
+aws dynamodb list-tables --endpoint-url http://localhost:8005
+
+
+
+aws dynamodb create-table --table-name bhajans --attribute-definitions AttributeName=id,AttributeType=S --key-schema AttributeName=id,KeyType=HASH --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 --endpoint-url http://localhost:8005

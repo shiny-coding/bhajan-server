@@ -1,0 +1,42 @@
+{
+	// Use IntelliSense to learn about possible attributes.
+	// Hover to view descriptions of existing attributes.
+	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch Program (automatic)",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"program": "${workspaceFolder}\\src\\resolvers\\itemResolver.ts",
+			"preLaunchTask": "tsc: build - tsconfig.json",
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			]
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch with Nodemon",
+			"runtimeExecutable": "nodemon",
+			"program": "${workspaceFolder}/src/index.ts", // Path to your entry file
+			"restart": true, // Automatically reattach on restart
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"runtimeArgs": ["--exec", "ts-node"], // Use ts-node if working with TypeScript
+			"env": {
+			  "NODE_ENV": "development" // Optional: environment variables
+			}
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Nodemon",
+			"processId": "${command:PickProcess}",
+			"restart": true
+		}
+	]
+}
