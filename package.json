@@ -11,6 +11,7 @@
     "@apollo/server": "^4.11.2",
     "@aws-sdk/client-dynamodb": "^3.699.0",
     "@aws-sdk/util-dynamodb": "^3.699.0",
+    "@opensearch-project/opensearch": "^2.13.0",
     "@types/aws-lambda": "^8.10.146",
     "@types/node": "^22.10.1",
     "aws-sdk": "^2.1692.0",
