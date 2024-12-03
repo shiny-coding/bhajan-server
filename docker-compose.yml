@@ -9,7 +9,12 @@ services:
       - "DISABLE_SECURITY_PLUGIN=true"
     ports:
       - "9200:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
     ulimits:
       memlock:
         soft: -1
-        hard: -1 
+        hard: -1
+
+volumes:
+  opensearch-data:

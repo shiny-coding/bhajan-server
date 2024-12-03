@@ -35,5 +35,7 @@ export const typeDefs = gql`
       review: String
       lessons: String
     ): Bhajan
+
+    reindexAll: Boolean
   }
 `;

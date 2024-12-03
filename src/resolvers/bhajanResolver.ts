@@ -3,12 +3,12 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { SearchService } from '../services/searchService';
 import { Bhajan } from '../models/Bhajan';
 
-const dynamo = new DynamoDB({
+export const dynamo = new DynamoDB({
   region: "fakeRegion",
   endpoint: "http://localhost:8005",
 });
 
-const TableName = "bhajans";
+export const TableName = "bhajans";
 
 export const resolvers = {
   Query: {
@@ -43,15 +43,23 @@ export const resolvers = {
     },
   },
   Mutation: {
-    createBhajan: async (_: any, { bhajan }: { bhajan: Bhajan }) => {
+    createBhajan: async (_: any, bhajan: Bhajan ) => {
       await dynamo.putItem({
         TableName,
-        Item: marshall(bhajan)
+        Item: marshall(bhajan, { removeUndefinedValues: true })
       });
 
       await SearchService.indexItem(bhajan);
-      
       return bhajan;
+    },
+    reindexAll: async () => {
+      try {
+        await SearchService.reindexAll();
+        return true;
+      } catch (error) {
+        console.error('Error reindexing:', error);
+        throw new Error('Failed to reindex');
+      }
     },
   },
 };

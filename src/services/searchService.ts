@@ -1,5 +1,7 @@
 import { Client } from '@opensearch-project/opensearch';
 import { Bhajan } from '../models/Bhajan';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { dynamo, TableName } from '../resolvers/bhajanResolver';
 
 const searchClient = new Client({
   node: 'http://localhost:9200',
@@ -15,18 +17,39 @@ export class SearchService {
       await searchClient.indices.create({
         index: INDEX_NAME,
         body: {
+          settings: {
+            analysis: {
+              analyzer: {
+                subword_analyzer: {
+                  type: "custom",
+                  tokenizer: "standard",
+                  filter: ["lowercase", "ngram_filter"]
+                }
+              },
+              filter: {
+                ngram_filter: {
+                  type: "ngram",
+                  min_gram: 2,
+                  max_gram: 15
+                }
+              }
+            },
+            index: {
+              max_ngram_diff: 14
+            }
+          },
           mappings: {
             properties: {
               author: { 
                 type: 'text',
-                analyzer: 'standard',
+                analyzer: 'subword_analyzer',
                 fields: {
                   keyword: { type: 'keyword' }
                 }
               },
               title: { 
                 type: 'text',
-                analyzer: 'standard',
+                analyzer: 'subword_analyzer',
                 fields: {
                   keyword: { type: 'keyword' }
                 }
@@ -37,23 +60,23 @@ export class SearchService {
               },
               text: { 
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'subword_analyzer'
               },
               translation: { 
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'subword_analyzer'
               },
               options: { 
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'subword_analyzer'
               },
               review: { 
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'subword_analyzer'
               },
               lessons: { 
                 type: 'text',
-                analyzer: 'standard'
+                analyzer: 'subword_analyzer'
               }
             }
           }
@@ -99,7 +122,7 @@ export class SearchService {
               'lessons'
             ],
             fuzziness: 'AUTO',
-            operator: 'or'
+            operator: 'and',
           }
         },
         highlight: {
@@ -129,5 +152,26 @@ export class SearchService {
         highlight
       };
     });
+  }
+
+  static async reindexAll() {
+    await this.deleteIndex();
+    await this.initIndex();
+    
+    const result = await dynamo.scan({ TableName });
+    const bhajans = result.Items ? result.Items.map(item => unmarshall(item)) : [];
+    for (const bhajan of bhajans) {
+      await this.indexItem(bhajan as Bhajan);
+    }
+  }
+
+  static async deleteIndex() {
+    try {
+      await searchClient.indices.delete({
+        index: INDEX_NAME
+      });
+    } catch (error) {
+      console.error(`Failed to delete index ${INDEX_NAME}:`, error);
+    }
   }
 } 
