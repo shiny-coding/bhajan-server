@@ -37,5 +37,7 @@ export const typeDefs = gql`
     ): Bhajan
 
     reindexAll: Boolean
+
+    importBhajansFromXls: [Bhajan!]!
   }
 `;

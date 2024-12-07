@@ -2,6 +2,7 @@ import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { SearchService } from '../services/searchService';
 import { Bhajan } from '../models/Bhajan';
+import { importBhajans } from "../services/xlsImporter";
 
 export const dynamo = new DynamoDB({
   region: "fakeRegion",
@@ -61,5 +62,14 @@ export const resolvers = {
         throw new Error('Failed to reindex');
       }
     },
+    importBhajansFromXls: async (_: any, { filePath }: { filePath: string }) => {
+      try {
+        const importedBhajans = await importBhajans();
+        return importedBhajans;
+      } catch (error) {
+        console.error('Failed to import bhajans:', error);
+        throw new Error('Failed to import bhajans from Excel file');
+      }
+    }
   },
 };

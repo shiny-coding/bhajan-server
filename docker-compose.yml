@@ -1,20 +1,20 @@
-version: '3'
+version: '3.8'
+
 services:
-  opensearch:
-    image: opensearchproject/opensearch:latest
-    environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "DISABLE_SECURITY_PLUGIN=true"
+  bhajan-app:
+    build: .
+    image: serhiichechin/bhajan-app:latest
     ports:
+      - "4000:4000"
+      - "8005:8005"
       - "9200:9200"
     volumes:
-      - opensearch-data:/usr/share/opensearch/data
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      - bhajan-dynamodb:/data/dynamodb
+      - bhajan-opensearch:/data/opensearch
+      - ./web:/app/web:ro
+    environment:
+      - NODE_ENV=development
 
 volumes:
-  opensearch-data:
+  bhajan-dynamodb:
+  bhajan-opensearch:
