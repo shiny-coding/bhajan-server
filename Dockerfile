@@ -26,14 +26,6 @@ RUN curl -O https://artifacts.opensearch.org/releases/bundle/opensearch/2.11.1/o
 RUN mkdir -p /data/dynamodb /data/opensearch && \
     chown -R opensearch-user:opensearch-user /opensearch /data/opensearch
 
-# Copy application files
-COPY package.json yarn.lock ./
-COPY tsconfig.json ./
-COPY src ./src
-
-# Install dependencies
-RUN yarn install
-
 # Expose ports
 EXPOSE 4000 8005 9200
 
@@ -43,13 +35,5 @@ RUN echo "path.data: /data/opensearch" >> /opensearch/config/opensearch.yml && \
     echo "network.host: 0.0.0.0" >> /opensearch/config/opensearch.yml && \
     echo "discovery.type: single-node" >> /opensearch/config/opensearch.yml && \
     echo "logger.level: WARN" >> /opensearch/config/opensearch.yml
-
-# Start services and app
-COPY start.sh ./
-RUN chmod +x start.sh
-
-# Copy and set up table creation script
-COPY create-dynamodb-table.sh /app/
-RUN chmod +x /app/create-dynamodb-table.sh
 
 CMD ["./start.sh"]

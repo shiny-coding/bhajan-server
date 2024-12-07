@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 
 services:
   bhajan-app:
@@ -11,7 +11,7 @@ services:
     volumes:
       - bhajan-dynamodb:/data/dynamodb
       - bhajan-opensearch:/data/opensearch
-      - ./web:/app/web:ro
+      - .:/app
     environment:
       - NODE_ENV=development
 
