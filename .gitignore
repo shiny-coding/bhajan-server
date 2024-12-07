@@ -2,3 +2,4 @@
 /bhajan-server/dist
 /node_modules
 /dist
+dynamodb-local-metadata.json
