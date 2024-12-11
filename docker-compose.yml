@@ -5,9 +5,9 @@ services:
     build: .
     image: serhiichechin/bhajan-app:latest
     ports:
-      - "4000:4000"
-      - "8005:8005"
-      - "9200:9200"
+      - "127.0.0.1:4000:4000"
+      - "127.0.0.1:8005:8005"
+      - "127.0.0.1:9200:9200"
     volumes:
       - bhajan-dynamodb:/data/dynamodb
       - bhajan-opensearch:/data/opensearch

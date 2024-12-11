@@ -10,6 +10,7 @@ export const typeDefs = gql`
     options: String
     review: String
     lessons: String
+    audioPath: String
   }
 
   type SearchResult {
@@ -34,6 +35,7 @@ export const typeDefs = gql`
       options: String
       review: String
       lessons: String
+      audioPath: String
     ): Bhajan
 
     reindexAll: Boolean

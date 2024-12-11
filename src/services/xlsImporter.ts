@@ -40,7 +40,10 @@ export async function importBhajans(): Promise<Bhajan[]> {
     const cell = worksheet[XLSX.utils.encode_cell({ r: range.s.r, c: C })];
     if (!cell) continue;  
     
-    const header = cell.v.toString().toLowerCase();
+    const header = cell.v.toString().replace(/(?:^\w|[A-Z]|\b\w)/g, (letter: string, index: number) => 
+      index === 0 ? letter.toLowerCase() : letter.toUpperCase()
+    ).replace(/\s+/g, '');
+    
     if (!bhajanFields.has(header)) {
       console.warn(`Ignoring unknown column: ${header}`);
     } else {

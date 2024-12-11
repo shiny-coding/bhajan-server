@@ -3,3 +3,5 @@
 /node_modules
 /dist
 dynamodb-local-metadata.json
+/dynamo-db
+/bhajan-user.txt

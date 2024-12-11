@@ -7,4 +7,5 @@ export type Bhajan = {
   options?: string;
   review?: string;
   lessons?: string;
+  audioPath?: string;
 }
