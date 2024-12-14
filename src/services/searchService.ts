@@ -35,7 +35,7 @@ export class SearchService {
               }
             },
             index: {
-              max_ngram_diff: 14
+              max_ngram_diff: 15
             }
           },
           mappings: {
@@ -105,30 +105,47 @@ export class SearchService {
       return acc;
     }, {} as Record<string, { number_of_fragments: 1 }>);
 
+    const searchBody = query ? {
+      query: {
+        multi_match: {
+          query,
+          fields: [
+            'title^3',
+            'author^2',
+            'text^2',
+            'translation',
+            'chords',
+            'options',
+            'review',
+            'lessons'
+          ],
+          // fuzziness: 'AUTO',
+          operator: 'and',
+        }
+      },
+      highlight: {
+        fields: highlightFields,
+        type: "unified",
+        fragmenter: "span",
+        number_of_fragments: 1,
+        fragment_size: 150,
+        boundary_chars: "",
+        boundary_max_scan: 0
+      }
+    } : {
+      size: 10000,
+      query: {
+        match_all: {}
+      },
+      sort: [
+        { "title.keyword": { order: "asc" }},
+        { "author.keyword": { order: "asc" }}
+      ]
+    };
+
     const result = await searchClient.search({
       index: INDEX_NAME,
-      body: {
-        query: {
-          multi_match: {
-            query,
-            fields: [
-              'title^3',
-              'author^2',
-              'text^2',
-              'translation',
-              'chords',
-              'options',
-              'review',
-              'lessons'
-            ],
-            fuzziness: 'AUTO',
-            operator: 'and',
-          }
-        },
-        highlight: {
-          fields: highlightFields
-        }
-      }
+      body: searchBody
     });
 
     return result.body.hits.hits.map((hit: {
@@ -172,6 +189,19 @@ export class SearchService {
       });
     } catch (error) {
       console.error(`Failed to delete index ${INDEX_NAME}:`, error);
+    }
+  }
+
+  static async deleteItem(author: string, title: string) {
+    try {
+      await searchClient.delete({
+        index: INDEX_NAME,
+        id: `${author}-${title}`,
+        refresh: true
+      });
+    } catch (error) {
+      console.error('Error deleting from search index:', error);
+      throw error;
     }
   }
 } 

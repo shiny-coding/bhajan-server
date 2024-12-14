@@ -44,14 +44,29 @@ export const resolvers = {
     },
   },
   Mutation: {
-    createBhajan: async (_: any, bhajan: Bhajan ) => {
-      await dynamo.putItem({
-        TableName,
-        Item: marshall(bhajan, { removeUndefinedValues: true })
-      });
+    createBhajan: async (_: any, { oldAuthor, oldTitle, ...bhajan }: { oldAuthor?: string, oldTitle?: string } & Bhajan) => {
+      try {
+        // If oldAuthor and oldTitle exist, delete the old record first
+        if (oldAuthor && oldTitle) {
+          await dynamo.deleteItem({
+            TableName,
+            Key: marshall({ author: oldAuthor, title: oldTitle })
+          });
+          await SearchService.deleteItem(oldAuthor, oldTitle);
+        }
 
-      await SearchService.indexItem(bhajan);
-      return bhajan;
+        // Create new record
+        await dynamo.putItem({
+          TableName,
+          Item: marshall(bhajan, { removeUndefinedValues: true })
+        });
+
+        await SearchService.indexItem(bhajan);
+        return true;
+      } catch (error) {
+        console.error('Error creating/updating bhajan:', error);
+        return false;
+      }
     },
     reindexAll: async () => {
       try {
@@ -70,6 +85,23 @@ export const resolvers = {
         console.error('Failed to import bhajans:', error);
         throw new Error('Failed to import bhajans from Excel file');
       }
-    }
+    },
+    deleteBhajan: async (_: unknown, { author, title }: { author: string, title: string }) => {
+      try {
+        // Delete from DynamoDB
+        await dynamo.deleteItem({
+          TableName,
+          Key: marshall({ author, title })
+        });
+
+        // Delete from OpenSearch
+        await SearchService.deleteItem(author, title);
+        
+        return true;
+      } catch (error) {
+        console.error('Error deleting bhajan:', error);
+        throw new Error('Failed to delete bhajan');
+      }
+    },
   },
 };

@@ -16,7 +16,7 @@ export const typeDefs = gql`
   type SearchResult {
     bhajan: Bhajan!
     score: Float
-    highlight: Bhajan
+    highlight: Bhajan!
   }
 
   type Query {
@@ -27,6 +27,8 @@ export const typeDefs = gql`
 
   type Mutation {
     createBhajan(
+      oldAuthor: String
+      oldTitle: String
       author: String!
       title: String!
       chords: String
@@ -36,7 +38,9 @@ export const typeDefs = gql`
       review: String
       lessons: String
       audioPath: String
-    ): Bhajan
+    ): Boolean
+
+    deleteBhajan(author: String!, title: String!): Boolean
 
     reindexAll: Boolean
 
