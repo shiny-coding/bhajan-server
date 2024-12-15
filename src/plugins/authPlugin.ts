@@ -16,7 +16,7 @@ export const authPlugin: ApolloServerPlugin = {
             });
           }
           
-          if (writeTokenHash !== hashToken(validToken as string)) {
+          if (writeTokenHash !== hashToken(validToken as string) && writeTokenHash != validToken) {
             throw new GraphQLError('Invalid write token hash', {
               extensions: { code: 'UNAUTHORIZED' }
             });
