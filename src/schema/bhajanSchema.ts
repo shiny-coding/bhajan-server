@@ -23,6 +23,7 @@ export const typeDefs = gql`
     getBhajan(author: String!, title: String!): Bhajan
     listBhajans: [Bhajan]
     searchBhajans(searchTerm: String!): [SearchResult]
+    checkWriteToken(writeTokenHash: String!): Boolean
   }
 
   type Mutation {

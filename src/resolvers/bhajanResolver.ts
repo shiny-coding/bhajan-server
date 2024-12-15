@@ -3,6 +3,7 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { SearchService } from '../services/searchService';
 import { Bhajan } from '../models/Bhajan';
 import { importBhajans } from "../services/xlsImporter";
+import { hashToken } from "../utils/hash";
 
 export const dynamo = new DynamoDB({
   region: "fakeRegion",
@@ -40,6 +41,16 @@ export const resolvers = {
       } catch (error) {
         console.error('Error searching bhajans:', error);
         throw new Error('Failed to search bhajans');
+      }
+    },
+    checkWriteToken: async (_: unknown, { writeTokenHash }: { writeTokenHash: string }) => {
+      try {
+        const validToken = process.env.WRITE_TOKEN;
+        const validHash = hashToken(validToken as string);
+        return writeTokenHash === validHash;
+      } catch (error) {
+        console.error('Error checking write token:', error);
+        return false;
       }
     },
   },
