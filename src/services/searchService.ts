@@ -54,6 +54,9 @@ export class SearchService {
                   keyword: { type: 'keyword' }
                 }
               },
+              lastModified: { 
+                type: 'date'  // Add this field
+              },
               chords: { 
                 type: 'text',
                 analyzer: 'standard'
@@ -138,6 +141,7 @@ export class SearchService {
         match_all: {}
       },
       sort: [
+        { "lastModified": { order: "desc" }},
         { "title.keyword": { order: "asc" }},
         { "author.keyword": { order: "asc" }}
       ]

@@ -11,6 +11,7 @@ export const typeDefs = gql`
     review: String
     lessons: String
     audioPath: String
+    lastModified: Float!
   }
 
   type SearchResult {

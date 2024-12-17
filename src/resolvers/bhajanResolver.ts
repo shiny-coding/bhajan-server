@@ -59,20 +59,39 @@ export const resolvers = {
       try {
         // If oldAuthor and oldTitle exist, delete the old record first
         if (oldAuthor && oldTitle) {
-          await dynamo.deleteItem({
-            TableName,
-            Key: marshall({ author: oldAuthor, title: oldTitle })
-          });
-          await SearchService.deleteItem(oldAuthor, oldTitle);
+          try {
+            await dynamo.deleteItem({
+              TableName,
+              Key: marshall({ author: oldAuthor, title: oldTitle })
+            });
+          } catch (error) {
+            // Ignore deletion errors for non-existent items
+            console.log(`Item not found in DynamoDB: ${oldAuthor} - ${oldTitle}`);
+          }
+
+          try {
+            await SearchService.deleteItem(oldAuthor, oldTitle);
+          } catch (error) {
+            // Ignore deletion errors for non-existent items
+            console.log(`Item not found in Search index: ${oldAuthor} - ${oldTitle}`);
+          }
         }
+        if ( bhajan.author.trim() == '' ) {
+          bhajan.author = 'Unknown';
+        }
+
+        const bhajanWithTimestamp = {
+          ...bhajan,
+          lastModified: Date.now()  // Add current timestamp
+        };
 
         // Create new record
         await dynamo.putItem({
           TableName,
-          Item: marshall(bhajan, { removeUndefinedValues: true })
+          Item: marshall(bhajanWithTimestamp, { removeUndefinedValues: true })
         });
 
-        await SearchService.indexItem(bhajan);
+        await SearchService.indexItem(bhajanWithTimestamp);
         return true;
       } catch (error) {
         console.error('Error creating/updating bhajan:', error);
