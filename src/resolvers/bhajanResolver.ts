@@ -107,6 +107,7 @@ export const resolvers = {
         throw new Error('Failed to reindex');
       }
     },
+    // test comment
     importBhajansFromXls: async (_: any, { filePath }: { filePath: string }) => {
       try {
         const importedBhajans = await importBhajans();
