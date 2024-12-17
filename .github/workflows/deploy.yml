@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd cd /var/www/miracall.net/bhajan-server
+            cd /var/www/miracall.net/bhajan-server
             git pull
             yarn install
             docker compose down
