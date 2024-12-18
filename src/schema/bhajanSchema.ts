@@ -1,6 +1,8 @@
 import { gql } from 'graphql-tag';
 
 export const typeDefs = gql`
+  scalar Upload
+
   type Bhajan {
     author: String!
     title: String!
@@ -40,6 +42,8 @@ export const typeDefs = gql`
       review: String
       lessons: String
       audioPath: String
+      audioFile: Upload
+      deleteAudio: Boolean
     ): Boolean
 
     deleteBhajan(author: String!, title: String!): Boolean

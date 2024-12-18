@@ -4,6 +4,11 @@ import { SearchService } from '../services/searchService';
 import { Bhajan } from '../models/Bhajan';
 import { importBhajans } from "../services/xlsImporter";
 import { hashToken } from "../utils/hash";
+import { createWriteStream } from 'fs';
+import { mkdir } from 'fs/promises';
+import path from 'path';
+import { transliterate } from 'transliteration';
+import { promises as fs } from 'fs';
 
 export const dynamo = new DynamoDB({
   region: "fakeRegion",
@@ -11,6 +16,18 @@ export const dynamo = new DynamoDB({
 });
 
 export const TableName = "bhajans";
+
+function sanitizeFileName(text: string): string {
+  return transliterate(text, { 
+    unknown: '', // Remove truly unknown chars
+    replace: [], // Don't replace anything specifically
+    trim: true 
+  }).replace(/[^a-zA-Z0-9]/g, '-');
+}
+
+function getAudioDir(): string {
+  return path.join(process.cwd(), 'web', 'audio');
+}
 
 export const resolvers = {
   Query: {
@@ -55,29 +72,76 @@ export const resolvers = {
     },
   },
   Mutation: {
-    createBhajan: async (_: any, { oldAuthor, oldTitle, ...bhajan }: { oldAuthor?: string, oldTitle?: string } & Bhajan) => {
+    createBhajan: async (_: any, { oldAuthor, oldTitle, audioFile, deleteAudio, ...bhajan }: { 
+      oldAuthor?: string, 
+      oldTitle?: string, 
+      audioFile?: any,
+      deleteAudio?: boolean 
+    } & Bhajan) => {
       try {
-        // If oldAuthor and oldTitle exist, delete the old record first
-        if (oldAuthor && oldTitle) {
-          try {
-            await dynamo.deleteItem({
-              TableName,
-              Key: marshall({ author: oldAuthor, title: oldTitle })
-            });
-          } catch (error) {
-            // Ignore deletion errors for non-existent items
-            console.log(`Item not found in DynamoDB: ${oldAuthor} - ${oldTitle}`);
+        if (bhajan.author.trim() === '') {
+          bhajan.author = 'Unknown';
+        }
+
+        // Handle audio deletion if requested
+        if (deleteAudio) {
+          bhajan.audioPath = '';
+          // Try to delete the existing file if it exists
+          if (oldAuthor && oldTitle) {
+            const oldFileName = `${sanitizeFileName(oldTitle)}-${sanitizeFileName(oldAuthor)}`;
+            const audioDir = getAudioDir();
+            const files = await fs.readdir(audioDir);
+            const oldFile = files.find(f => f.startsWith(oldFileName));
+            
+            if (oldFile) {
+              try {
+                await fs.unlink(path.join(audioDir, oldFile));
+              } catch (error) {
+                console.error('Error deleting audio file:', error);
+              }
+            }
+          }
+        } else {
+          // Handle existing audio file renaming
+          if (oldAuthor && oldTitle && (oldAuthor !== bhajan.author || oldTitle !== bhajan.title)) {
+            const oldFileName = `${sanitizeFileName(oldTitle)}-${sanitizeFileName(oldAuthor)}`;
+            const newFileName = `${sanitizeFileName(bhajan.title)}-${sanitizeFileName(bhajan.author)}`;
+            
+            // Try to find and rename any existing audio file
+            const audioDir = getAudioDir();
+            const files = await fs.readdir(audioDir);
+            const oldFile = files.find(f => f.startsWith(oldFileName));
+            
+            if (oldFile) {
+              const extension = path.extname(oldFile);
+              const newFile = `${newFileName}${extension}`;
+              await fs.rename(
+                path.join(audioDir, oldFile),
+                path.join(audioDir, newFile)
+              );
+              bhajan.audioPath = `/audio/${newFile}`;
+            }
           }
 
-          try {
-            await SearchService.deleteItem(oldAuthor, oldTitle);
-          } catch (error) {
-            // Ignore deletion errors for non-existent items
-            console.log(`Item not found in Search index: ${oldAuthor} - ${oldTitle}`);
+          // Handle new file upload
+          if (audioFile) {
+            const { createReadStream, filename } = await audioFile;
+            if ( filename ) {
+              const extension = path.extname(filename);
+              const audioFileName = `${sanitizeFileName(bhajan.title)}-${sanitizeFileName(bhajan.author)}${extension}`;
+              
+              await mkdir(getAudioDir(), { recursive: true });
+              
+              await new Promise((resolve, reject) => {
+                createReadStream()
+                  .pipe(createWriteStream(path.join(getAudioDir(), audioFileName)))
+                  .on('finish', resolve)
+                  .on('error', reject);
+              });
+
+              bhajan.audioPath = `/audio/${audioFileName}`;
+            }
           }
-        }
-        if ( bhajan.author.trim() == '' ) {
-          bhajan.author = 'Unknown';
         }
 
         const bhajanWithTimestamp = {

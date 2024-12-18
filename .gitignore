@@ -8,3 +8,5 @@ dynamodb-local-metadata.json
 /.env
 fakeMyKeyId_fakeRegion.db
 /creds
+web/audio/khki-asdasd.mp3
+/web/audio
