@@ -10,10 +10,10 @@ export const typeDefs = gql`
     text: String
     translation: String
     options: String
-    review: String
+    reviewPath: String
     lessons: String
     audioPath: String
-    lastModified: Float!
+    lastModified: Float
   }
 
   type SearchResult {
@@ -39,11 +39,13 @@ export const typeDefs = gql`
       text: String
       translation: String
       options: String
-      review: String
+      reviewPath: String
       lessons: String
       audioPath: String
       audioFile: Upload
+      reviewFile: Upload
       deleteAudio: Boolean
+      deleteReview: Boolean
     ): Boolean
 
     deleteBhajan(author: String!, title: String!): Boolean

@@ -5,7 +5,8 @@ export type Bhajan = {
   chords?: string;
   translation?: string;
   options?: string;
-  review?: string;
+  reviewPath?: string;
   lessons?: string;
   audioPath?: string;
+  lastModified?: number;
 }

@@ -162,9 +162,10 @@ export class SearchService {
         title: hit._source.title,
         text: hit._source.text,
         ...Object.keys(hit._source).reduce((acc, field) => {
-          acc[field as keyof Bhajan] = hit.highlight?.[field]?.[0] || hit._source[field as keyof Bhajan] || "";
+          const fieldType = typeof hit._source[field as keyof Bhajan];
+          acc[field as keyof Bhajan] = hit.highlight?.[field]?.[0] || hit._source[field as keyof Bhajan] || (fieldType === 'number' ? 0 : '');
           return acc;
-        }, {} as Record<string, string>)
+        }, {} as Record<string, string | number>)
       };
 
       return {

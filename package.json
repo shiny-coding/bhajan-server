@@ -7,7 +7,7 @@
     "start": "ts-node src/index.ts",
     "dev": "nodemon src/index.ts",
     "postinstall": "ts-patch install",
-    "run-db": "java -Djava.library.path=dynamo-db/DynamoDBLocal_lib -jar dynamo-db/DynamoDBLocal.jar -port 8005"
+    "run-db": "java -Djava.library.path=dynamo-db/DynamoDBLocal_lib -jar dynamo-db/DynamoDBLocal.jar -port 8015"
   },
   "dependencies": {
     "@apollo/server": "^4.11.2",

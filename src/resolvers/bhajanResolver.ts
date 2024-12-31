@@ -9,10 +9,13 @@ import { mkdir } from 'fs/promises';
 import path from 'path';
 import { transliterate } from 'transliteration';
 import { promises as fs } from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export const dynamo = new DynamoDB({
   region: "fakeRegion",
-  endpoint: "http://localhost:8005",
+  endpoint: process.env.DYNAMODB_ENDPOINT || "http://localhost:8005",
 });
 
 export const TableName = "bhajans";
@@ -27,6 +30,83 @@ function sanitizeFileName(text: string): string {
 
 function getAudioDir(): string {
   return path.join(process.cwd(), 'web', 'audio');
+}
+
+function getReviewDir(): string {
+  return path.join(process.cwd(), 'web', 'review');
+}
+
+interface FileHandlingOptions {
+  deleteFile: boolean;
+  file?: any;
+  oldAuthor?: string;
+  oldTitle?: string;
+  newAuthor: string;
+  newTitle: string;
+  dirPath: string;
+  urlPath: string;
+}
+
+async function handleFile(options: FileHandlingOptions): Promise<string> {
+  const { deleteFile, file, oldAuthor, oldTitle, newAuthor, newTitle, dirPath, urlPath } = options;
+
+  if (deleteFile) {
+    if (oldAuthor && oldTitle) {
+      const oldFileName = `${sanitizeFileName(oldTitle)}-${sanitizeFileName(oldAuthor)}`;
+      const files = await fs.readdir(dirPath);
+      const oldFile = files.find(f => f.startsWith(oldFileName));
+      
+      if (oldFile) {
+        try {
+          await fs.unlink(path.join(dirPath, oldFile));
+        } catch (error) {
+          console.error(`Error deleting file from ${dirPath}:`, error);
+        }
+      }
+    }
+    return '';
+  }
+
+  // Handle file renaming
+  if (oldAuthor && oldTitle && (oldAuthor !== newAuthor || oldTitle !== newTitle)) {
+    const oldFileName = `${sanitizeFileName(oldTitle)}-${sanitizeFileName(oldAuthor)}`;
+    const newFileName = `${sanitizeFileName(newTitle)}-${sanitizeFileName(newAuthor)}`;
+    
+    const files = await fs.readdir(dirPath);
+    const oldFile = files.find(f => f.startsWith(oldFileName));
+    
+    if (oldFile) {
+      const extension = path.extname(oldFile);
+      const newFile = `${newFileName}${extension}`;
+      await fs.rename(
+        path.join(dirPath, oldFile),
+        path.join(dirPath, newFile)
+      );
+      return `${urlPath}/${newFile}`;
+    }
+  }
+
+  // Handle new file upload
+  if (file) {
+    const { createReadStream, filename } = await file;
+    if (filename) {
+      const extension = path.extname(filename);
+      const newFileName = `${sanitizeFileName(newTitle)}-${sanitizeFileName(newAuthor)}${extension}`;
+      
+      await mkdir(dirPath, { recursive: true });
+      
+      await new Promise((resolve, reject) => {
+        createReadStream()
+          .pipe(createWriteStream(path.join(dirPath, newFileName)))
+          .on('finish', resolve)
+          .on('error', reject);
+      });
+
+      return `${urlPath}/${newFileName}`;
+    }
+  }
+
+  return undefined as any; // Keep existing path if no changes
 }
 
 export const resolvers = {
@@ -72,84 +152,56 @@ export const resolvers = {
     },
   },
   Mutation: {
-    createBhajan: async (_: any, { oldAuthor, oldTitle, audioFile, deleteAudio, ...bhajan }: { 
+    createBhajan: async (_: any, { 
+      oldAuthor, 
+      oldTitle, 
+      audioFile, 
+      reviewFile,
+      deleteAudio,
+      deleteReview,
+      ...bhajan 
+    }: { 
       oldAuthor?: string, 
       oldTitle?: string, 
       audioFile?: any,
-      deleteAudio?: boolean 
+      reviewFile?: any,
+      deleteAudio?: boolean,
+      deleteReview?: boolean 
     } & Bhajan) => {
       try {
         if (bhajan.author.trim() === '') {
           bhajan.author = 'Unknown';
         }
 
-        // Handle audio deletion if requested
-        if (deleteAudio) {
-          bhajan.audioPath = '';
-          // Try to delete the existing file if it exists
-          if (oldAuthor && oldTitle) {
-            const oldFileName = `${sanitizeFileName(oldTitle)}-${sanitizeFileName(oldAuthor)}`;
-            const audioDir = getAudioDir();
-            const files = await fs.readdir(audioDir);
-            const oldFile = files.find(f => f.startsWith(oldFileName));
-            
-            if (oldFile) {
-              try {
-                await fs.unlink(path.join(audioDir, oldFile));
-              } catch (error) {
-                console.error('Error deleting audio file:', error);
-              }
-            }
-          }
-        } else {
-          // Handle existing audio file renaming
-          if (oldAuthor && oldTitle && (oldAuthor !== bhajan.author || oldTitle !== bhajan.title)) {
-            const oldFileName = `${sanitizeFileName(oldTitle)}-${sanitizeFileName(oldAuthor)}`;
-            const newFileName = `${sanitizeFileName(bhajan.title)}-${sanitizeFileName(bhajan.author)}`;
-            
-            // Try to find and rename any existing audio file
-            const audioDir = getAudioDir();
-            const files = await fs.readdir(audioDir);
-            const oldFile = files.find(f => f.startsWith(oldFileName));
-            
-            if (oldFile) {
-              const extension = path.extname(oldFile);
-              const newFile = `${newFileName}${extension}`;
-              await fs.rename(
-                path.join(audioDir, oldFile),
-                path.join(audioDir, newFile)
-              );
-              bhajan.audioPath = `/audio/${newFile}`;
-            }
-          }
+        // Handle audio file
+        bhajan.audioPath = await handleFile({
+          deleteFile: deleteAudio || false,
+          file: audioFile,
+          oldAuthor,
+          oldTitle,
+          newAuthor: bhajan.author,
+          newTitle: bhajan.title,
+          dirPath: getAudioDir(),
+          urlPath: '/audio'
+        });
 
-          // Handle new file upload
-          if (audioFile) {
-            const { createReadStream, filename } = await audioFile;
-            if ( filename ) {
-              const extension = path.extname(filename);
-              const audioFileName = `${sanitizeFileName(bhajan.title)}-${sanitizeFileName(bhajan.author)}${extension}`;
-              
-              await mkdir(getAudioDir(), { recursive: true });
-              
-              await new Promise((resolve, reject) => {
-                createReadStream()
-                  .pipe(createWriteStream(path.join(getAudioDir(), audioFileName)))
-                  .on('finish', resolve)
-                  .on('error', reject);
-              });
-
-              bhajan.audioPath = `/audio/${audioFileName}`;
-            }
-          }
-        }
+        // Handle review file
+        bhajan.reviewPath = await handleFile({
+          deleteFile: deleteReview || false,
+          file: reviewFile,
+          oldAuthor,
+          oldTitle,
+          newAuthor: bhajan.author,
+          newTitle: bhajan.title,
+          dirPath: getReviewDir(),
+          urlPath: '/review'
+        });
 
         const bhajanWithTimestamp = {
           ...bhajan,
-          lastModified: Date.now()  // Add current timestamp
+          lastModified: Date.now()
         };
 
-        // Create new record
         await dynamo.putItem({
           TableName,
           Item: marshall(bhajanWithTimestamp, { removeUndefinedValues: true })

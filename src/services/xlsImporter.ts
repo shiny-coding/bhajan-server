@@ -62,9 +62,10 @@ export async function importBhajans(): Promise<Bhajan[]> {
     const bhajan: Bhajan = {} as Bhajan;
     
     // Only copy valid fields
-    for (const [key, value] of Object.entries(row as Record<keyof Bhajan, unknown>)) {
+    for (const [key, value] of Object.entries(row as Record<string, unknown>)) {
       if (bhajanFields.has(key as keyof Bhajan)) {
-        bhajan[key as keyof Bhajan] = value as string;
+        const bhajanTyped = bhajan as Record<string, unknown>;
+        bhajanTyped[key] = value?.toString() || '';
       }
     }
 
