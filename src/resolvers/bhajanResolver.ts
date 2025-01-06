@@ -45,10 +45,11 @@ interface FileHandlingOptions {
   newTitle: string;
   dirPath: string;
   urlPath: string;
+  oldPath?: string;
 }
 
-async function handleFile(options: FileHandlingOptions): Promise<string> {
-  const { deleteFile, file, oldAuthor, oldTitle, newAuthor, newTitle, dirPath, urlPath } = options;
+async function handleFile(options: FileHandlingOptions): Promise<string | undefined> {
+  const { deleteFile, file, oldAuthor, oldTitle, newAuthor, newTitle, dirPath, urlPath, oldPath } = options;
 
   if (deleteFile) {
     if (oldAuthor && oldTitle) {
@@ -106,7 +107,7 @@ async function handleFile(options: FileHandlingOptions): Promise<string> {
     }
   }
 
-  return undefined as any; // Keep existing path if no changes
+  return oldPath; // Keep existing path if no changes
 }
 
 export const resolvers = {
@@ -182,7 +183,8 @@ export const resolvers = {
           newAuthor: bhajan.author,
           newTitle: bhajan.title,
           dirPath: getAudioDir(),
-          urlPath: '/audio'
+          urlPath: '/audio',
+          oldPath: bhajan.audioPath
         });
 
         // Handle review file
@@ -194,7 +196,8 @@ export const resolvers = {
           newAuthor: bhajan.author,
           newTitle: bhajan.title,
           dirPath: getReviewDir(),
-          urlPath: '/review'
+          urlPath: '/review',
+          oldPath: bhajan.reviewPath
         });
 
         const bhajanWithTimestamp = {
