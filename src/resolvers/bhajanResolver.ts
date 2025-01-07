@@ -174,6 +174,15 @@ export const resolvers = {
           bhajan.author = 'Unknown';
         }
 
+        // If primary key changed, delete the old record first
+        if (oldAuthor && oldTitle && (oldAuthor !== bhajan.author || oldTitle !== bhajan.title)) {
+          await dynamo.deleteItem({
+            TableName,
+            Key: marshall({ author: oldAuthor, title: oldTitle })
+          });
+          await SearchService.deleteItem(oldAuthor, oldTitle);
+        }
+
         // Handle audio file
         bhajan.audioPath = await handleFile({
           deleteFile: deleteAudio || false,
@@ -238,6 +247,42 @@ export const resolvers = {
     },
     deleteBhajan: async (_: unknown, { author, title }: { author: string, title: string }) => {
       try {
+        // Get the current bhajan to check for files
+        const result = await dynamo.getItem({
+          TableName,
+          Key: marshall({ author, title })
+        });
+
+        if (result.Item) {
+          const bhajan = unmarshall(result.Item);
+          
+          // Delete audio file if exists
+          if (bhajan.audioPath) {
+            await handleFile({
+              deleteFile: true,
+              oldAuthor: author,
+              oldTitle: title,
+              newAuthor: author,
+              newTitle: title,
+              dirPath: getAudioDir(),
+              urlPath: '/audio'
+            });
+          }
+
+          // Delete review file if exists
+          if (bhajan.reviewPath) {
+            await handleFile({
+              deleteFile: true,
+              oldAuthor: author,
+              oldTitle: title,
+              newAuthor: author,
+              newTitle: title,
+              dirPath: getReviewDir(),
+              urlPath: '/review'
+            });
+          }
+        }
+
         // Delete from DynamoDB
         await dynamo.deleteItem({
           TableName,
