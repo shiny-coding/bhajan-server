@@ -2,7 +2,8 @@ import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { SearchService } from '../services/searchService';
 import { Bhajan } from '../models/Bhajan';
-import { importBhajans } from "../services/xlsImporter";
+import { importBhajans } from "../services/xlsImportService";
+import { exportBhajans } from "../services/xlsExportService";
 import { hashToken } from "../utils/hash";
 import { createWriteStream } from 'fs';
 import { mkdir } from 'fs/promises';
@@ -235,16 +236,6 @@ export const resolvers = {
         throw new Error('Failed to reindex');
       }
     },
-    // test comment
-    importBhajansFromXls: async (_: any, { filePath }: { filePath: string }) => {
-      try {
-        const importedBhajans = await importBhajans();
-        return importedBhajans;
-      } catch (error) {
-        console.error('Failed to import bhajans:', error);
-        throw new Error('Failed to import bhajans from Excel file');
-      }
-    },
     deleteBhajan: async (_: unknown, { author, title }: { author: string, title: string }) => {
       try {
         // Get the current bhajan to check for files
@@ -298,5 +289,71 @@ export const resolvers = {
         throw new Error('Failed to delete bhajan');
       }
     },
+    importBhajans: async (_: unknown, { file }: { file: any }) => {
+      try {
+        return await importBhajans(file);
+      } catch (error) {
+        console.error('Failed to import bhajans:', error);
+        throw new Error('Failed to import bhajans from Excel file');
+      }
+    },
+    exportBhajans: async () => {
+      try {
+        return await exportBhajans();
+      } catch (error) {
+        console.error('Failed to export bhajans:', error);
+        throw new Error('Failed to export bhajans to Excel file');
+      }
+    },
+    deleteAllBhajans: async () => {
+      try {
+        // Get all bhajans
+        const result = await dynamo.scan({ TableName });
+        if (!result.Items) return true;
+
+        const bhajans = result.Items.map(item => unmarshall(item));
+        
+        // Delete all files
+        for (const bhajan of bhajans) {
+          if (bhajan.audioPath) {
+            await handleFile({
+              deleteFile: true,
+              oldAuthor: bhajan.author,
+              oldTitle: bhajan.title,
+              newAuthor: bhajan.author,
+              newTitle: bhajan.title,
+              dirPath: getAudioDir(),
+              urlPath: '/audio'
+            });
+          }
+          
+          if (bhajan.reviewPath) {
+            await handleFile({
+              deleteFile: true,
+              oldAuthor: bhajan.author,
+              oldTitle: bhajan.title,
+              newAuthor: bhajan.author,
+              newTitle: bhajan.title,
+              dirPath: getReviewDir(),
+              urlPath: '/review'
+            });
+          }
+
+          // Delete from DynamoDB
+          await dynamo.deleteItem({
+            TableName,
+            Key: marshall({ author: bhajan.author, title: bhajan.title })
+          });
+        }
+
+        // Clear search index
+        await SearchService.clearIndex();
+        
+        return true;
+      } catch (error) {
+        console.error('Error deleting all bhajans:', error);
+        throw new Error('Failed to delete all bhajans');
+      }
+    }
   },
 };

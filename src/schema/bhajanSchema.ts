@@ -52,6 +52,15 @@ export const typeDefs = gql`
 
     reindexAll: Boolean
 
-    importBhajansFromXls: [Bhajan!]!
+    importBhajans(file: Upload!): ImportStats!
+    exportBhajans: String
+
+    deleteAllBhajans: Boolean!
+  }
+
+  type ImportStats {
+    numberAdded: Int!
+    numberReplaced: Int!
+    numberSkipped: Int!
   }
 `;

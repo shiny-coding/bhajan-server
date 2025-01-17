@@ -187,6 +187,7 @@ export class SearchService {
     }
   }
 
+  // !this deletes the index, not just clears it! 
   static async deleteIndex() {
     try {
       await searchClient.indices.delete({
@@ -206,6 +207,23 @@ export class SearchService {
       });
     } catch (error) {
       console.error('Error deleting from search index:', error);
+      throw error;
+    }
+  }
+
+  static async clearIndex(): Promise<void> {
+    try {
+      await searchClient.deleteByQuery({
+        index: INDEX_NAME,
+        refresh: true,
+        body: {
+          query: {
+            match_all: {}
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error clearing index:', error);
       throw error;
     }
   }
