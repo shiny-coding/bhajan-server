@@ -40,8 +40,12 @@ const server = new ApolloServer({
       methods: ['POST', 'GET', 'OPTIONS'],
       // allowedHeaders: ['Content-Type', 'write-token-hash']
     }),
-    graphqlUploadExpress(),  // Enable file uploads
-    express.json(),          // Parse JSON bodies
+    graphqlUploadExpress({
+      maxFileSize: 500 * 1024 * 1024, // 500MB in bytes
+      maxFiles: 10 // Allow up to 10 files per request
+    }),  // Enable file uploads with 500MB limit
+    express.json({ limit: '500mb' }),          // Parse JSON bodies with 500MB limit
+    express.urlencoded({ limit: '500mb', extended: true }), // Handle URL-encoded data with 500MB limit
     expressMiddleware(server, {
       context: async ({ req }) => ({ req })
     })
